@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nalin 💘</title>
+
   <style>
     :root{
       --bg1:#ff6b81;
@@ -11,20 +12,27 @@
       --glass: rgba(255,255,255,.16);
       --border: rgba(255,255,255,.22);
     }
-    *{box-sizing:border-box}
+    *{ box-sizing:border-box; }
+
     body{
       margin:0;
       font-family:-apple-system,BlinkMacSystemFont,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-      height:100vh;
-      display:grid;
-      place-items:center;
-      padding:18px;
-      overflow:hidden;
       color:#fff;
       text-align:center;
       background:
         radial-gradient(900px 700px at 20% 10%, rgba(255,255,255,.18), transparent 60%),
         linear-gradient(135deg,var(--bg1),var(--bg2));
+      overflow:hidden;
+    }
+
+    /* Overlay, das sicher über dem Viewport liegt */
+    .overlay{
+      position:fixed;
+      inset:0;
+      display:grid;
+      place-items:center;
+      padding:18px;
+      pointer-events:none; /* nur Button bekommt pointer events */
     }
 
     .card{
@@ -35,7 +43,9 @@
       border-radius:26px;
       box-shadow:0 25px 60px rgba(0,0,0,.30);
       padding:34px 22px 22px;
+      pointer-events:auto;
       position:relative;
+      z-index:2;
     }
 
     h1{ margin:0 0 10px; font-size:28px; }
@@ -69,15 +79,17 @@
     }
     .yes:hover{ transform: scale(1.03); filter:brightness(1.03); }
 
-    /* ✅ Nein: kein Hover-Scale, wir bewegen nur per JS */
+    /* ✅ Nein Button: absolut im Overlay, immer anklickbar */
     .no{
+      position:fixed; /* bleibt am sichtbaren Viewport */
+      left:16px;
+      top:16px;
+      z-index:9999;
+      pointer-events:auto;
+
       background:rgba(255,255,255,.28);
       color:#fff;
       border:1px solid rgba(255,255,255,.22);
-      position:fixed;   /* wir setzen left/top per JS */
-      left: 12px;
-      top: 12px;
-      z-index:9999;
     }
     .no:hover{ transform:none; filter:none; }
 
@@ -104,12 +116,13 @@
     }
 
     .heart{
-      position:absolute;
+      position:fixed;
       bottom:-20px;
       font-size:22px;
       animation:floatUp 4s linear forwards;
       pointer-events:none;
       filter: drop-shadow(0 10px 14px rgba(0,0,0,.25));
+      z-index:9998;
     }
     @keyframes floatUp{
       to{ transform:translateY(-110vh); opacity:0; }
@@ -118,29 +131,30 @@
 </head>
 
 <body>
-  <main class="card" id="card">
-    <h1>Nalin… 💘</h1>
-    <p>Ich mach’s kurz und ehrlich 😌</p>
-    <h2>Willst du mein Valentine sein? 🌹</h2>
+  <div class="overlay" id="overlay">
+    <main class="card" id="card">
+      <h1>Nalin… 💘</h1>
+      <p>Ich mach’s kurz und ehrlich 😌</p>
+      <h2>Willst du mein Valentine sein? 🌹</h2>
 
-    <div class="btnRow">
-      <button class="yes" id="yesBtn">Ja 💖</button>
-    </div>
+      <div class="btnRow">
+        <button class="yes" id="yesBtn">Ja 💖</button>
+      </div>
 
-    <div class="result" id="result">
-      Yesss 😍 Dann ist das unser Song ✨🌹
-    </div>
+      <div class="result" id="result">
+        Yesss 😍 Dann ist das unser Song ✨🌹
+      </div>
 
-    <div class="spotify" id="spotify">
-      <iframe
-        id="spotifyFrame"
-        src=""
-        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture">
-      </iframe>
-    </div>
-  </main>
+      <div class="spotify" id="spotify">
+        <iframe
+          id="spotifyFrame"
+          src=""
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture">
+        </iframe>
+      </div>
+    </main>
+  </div>
 
-  <!-- ❗ Nein-Button absichtlich außerhalb der Card -->
   <button class="no" id="noBtn">Nein 🙈</button>
 
 <script>
@@ -151,20 +165,28 @@
   const spotify = document.getElementById("spotify");
   const spotifyFrame = document.getElementById("spotifyFrame");
 
-  // ✅ Hier stellst du ein, wie weit "Nein" maximal springen darf
-  const RADIUS_MIN = 90;     // nicht zu nah an der Card
-  const RADIUS_MAX = 220;    // nicht zu weit weg
-  const EDGE_PAD   = 16;     // Abstand zum Bildschirmrand
+  // Radius um die Card (px)
+  const RADIUS_MIN = 90;
+  const RADIUS_MAX = 220;
+  const EDGE_PAD   = 16;
 
   function rand(min, max){ return Math.random()*(max-min)+min; }
   function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
 
-  function getBtnSize(){
-    // fallback falls offsetWidth kurz 0 ist
+  // ✅ iPhone-safe Viewport Maße
+  function viewportBox(){
+    const vv = window.visualViewport;
+    const w = vv?.width  ?? document.documentElement.clientWidth;
+    const h = vv?.height ?? document.documentElement.clientHeight;
+    // visuelle Viewport-Offsets (Safari kann scroll/zoom offsets haben)
+    const ox = vv?.offsetLeft ?? 0;
+    const oy = vv?.offsetTop  ?? 0;
+    return { w, h, ox, oy };
+  }
+
+  function btnSize(){
     const r = noBtn.getBoundingClientRect();
-    const w = r.width  || 110;
-    const h = r.height || 48;
-    return {w,h};
+    return { w: r.width || 110, h: r.height || 48 };
   }
 
   function jumpNo(){
@@ -172,7 +194,8 @@
     const cx = cr.left + cr.width/2;
     const cy = cr.top  + cr.height/2;
 
-    const {w:bw, h:bh} = getBtnSize();
+    const { w:bw, h:bh } = btnSize();
+    const { w:vw, h:vh, ox, oy } = viewportBox();
 
     const angle  = rand(0, Math.PI*2);
     const radius = rand(RADIUS_MIN, RADIUS_MAX);
@@ -180,16 +203,38 @@
     let x = cx + Math.cos(angle)*radius - bw/2;
     let y = cy + Math.sin(angle)*radius - bh/2;
 
-    x = clamp(x, EDGE_PAD, window.innerWidth  - bw - EDGE_PAD);
-    y = clamp(y, EDGE_PAD, window.innerHeight - bh - EDGE_PAD);
+    // clamp in visual viewport (mit offsets)
+    const minX = ox + EDGE_PAD;
+    const maxX = ox + vw - bw - EDGE_PAD;
+    const minY = oy + EDGE_PAD;
+    const maxY = oy + vh - bh - EDGE_PAD;
+
+    x = clamp(x, minX, maxX);
+    y = clamp(y, minY, maxY);
 
     noBtn.style.left = x + "px";
     noBtn.style.top  = y + "px";
   }
 
-  // ✅ WICHTIG: erst nach dem Render positionieren (iPhone-safe)
-  requestAnimationFrame(()=> jumpNo());
-  setTimeout(jumpNo, 60); // extra safety
+  // ✅ Initialisierung mehrfach (Safari/iOS Layout Updates)
+  function initNo(){
+    jumpNo();
+    setTimeout(jumpNo, 50);
+    setTimeout(jumpNo, 200);
+  }
+
+  // Wenn DOM fertig ist
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initNo);
+  } else {
+    initNo();
+  }
+
+  // Bei Viewport-Änderungen (iPhone Adressleiste etc.)
+  window.addEventListener("resize", ()=>{ if(!noBtn.disabled) jumpNo(); });
+  window.addEventListener("scroll", ()=>{ if(!noBtn.disabled) jumpNo(); }, {passive:true});
+  window.visualViewport?.addEventListener("resize", ()=>{ if(!noBtn.disabled) jumpNo(); });
+  window.visualViewport?.addEventListener("scroll", ()=>{ if(!noBtn.disabled) jumpNo(); });
 
   noBtn.addEventListener("click", (e)=>{ e.preventDefault(); jumpNo(); });
   noBtn.addEventListener("touchstart", (e)=>{ e.preventDefault(); jumpNo(); }, {passive:false});
@@ -201,7 +246,6 @@
     yesBtn.textContent = "Ja (fest!) 💖";
     noBtn.disabled = true;
 
-    // hearts
     for(let i=0;i<26;i++){
       const h=document.createElement("div");
       h.className="heart";
@@ -212,12 +256,7 @@
       setTimeout(()=>h.remove(), 4000);
     }
 
-    // Spotify load with autoplay flag (kann trotzdem Play benötigen – Spotify/iOS Policy)
     spotifyFrame.src = "https://open.spotify.com/embed/track/3U5JVgI2x4rDyHGObzJfNf?utm_source=generator&autoplay=1";
-  });
-
-  window.addEventListener("resize", ()=>{
-    if(!noBtn.disabled) jumpNo();
   });
 </script>
 </body>
