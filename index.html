@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <title>Nalin 💘</title>
+
   <style>
     :root{
       --bg1:#ff4d6d;
@@ -13,6 +14,7 @@
       --text:#fff;
     }
     *{box-sizing:border-box}
+
     body{
       margin:0;
       font-family:-apple-system,BlinkMacSystemFont,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
@@ -28,6 +30,7 @@
         radial-gradient(900px 700px at 80% 30%, rgba(255,183,3,.14), transparent 60%),
         linear-gradient(135deg,var(--bg1),var(--bg2));
     }
+
     .card{
       width:min(560px, 100%);
       background:var(--card);
@@ -39,6 +42,7 @@
       position:relative;
       overflow:hidden;
     }
+
     h1{ margin:0 0 10px; font-size:28px; }
     p{ margin:0 0 8px; opacity:.92; }
     h2{ margin:10px 0 0; font-size:20px; font-weight:900; }
@@ -49,8 +53,9 @@
       justify-content:center;
       gap:12px;
       flex-wrap:wrap;
-      min-height:54px;
+      min-height:60px;
       position:relative;
+      z-index:2;
     }
 
     button{
@@ -72,19 +77,15 @@
     }
     .yes:hover{ transform: scale(1.03); filter:brightness(1.03); }
 
-    /* ✅ Nein startet NORMAL im Button-Row (fixed position) */
+    /* ✅ Nein ist IMMER absolut innerhalb der Card -> kann nicht verschwinden */
     .no{
+      position:absolute;
       background: rgba(255,255,255,.28);
       color:#fff;
       border:1px solid rgba(255,255,255,.22);
-    }
-    .no:hover{ transform:none; filter:none; }
-
-    /* ✅ Ab dem 1. Klick bekommt er "floating"-Mode innerhalb der Card */
-    .no.floating{
-      position:absolute;      /* relativ zur Card */
       z-index:5;
     }
+    .no:hover{ transform:none; filter:none; } /* kein größer werden */
 
     .result{
       display:none;
@@ -95,7 +96,10 @@
       border-radius:18px;
       border:1px solid rgba(255,255,255,.22);
       background: rgba(0,0,0,.10);
+      z-index:2;
+      position:relative;
     }
+
     .spotify{
       display:none;
       margin-top:14px;
@@ -132,11 +136,12 @@
 
     <div class="btnRow" id="btnRow">
       <button class="yes" id="yesBtn">Ja 💖</button>
-      <button class="no" id="noBtn">Nein 🙈</button>
+      <!-- „Nein“ steht NICHT im Layout, wird daneben positioniert -->
+      <span style="display:none" id="noPlaceholder"></span>
     </div>
 
     <div class="result" id="result">
-      Du bist ein G ❤️
+      Du bist ein G ✨🌹
     </div>
 
     <div class="spotify" id="spotify">
@@ -146,62 +151,84 @@
         allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture">
       </iframe>
     </div>
+
+    <!-- ✅ echter Nein Button (absolut in Card) -->
+    <button class="no" id="noBtn">Nein 🤨</button>
   </main>
 
 <script>
   const card = document.getElementById("card");
   const btnRow = document.getElementById("btnRow");
-  const noBtn = document.getElementById("noBtn");
   const yesBtn = document.getElementById("yesBtn");
+  const noBtn  = document.getElementById("noBtn");
+
   const result = document.getElementById("result");
   const spotify = document.getElementById("spotify");
   const spotifyFrame = document.getElementById("spotifyFrame");
 
   const PAD = 14;
-  let noHasMoved = false;
+  let noActivated = false;
 
   function rand(min, max){ return Math.random()*(max-min)+min; }
 
+  // ✅ Startposition: exakt neben dem Ja-Button (im btnRow)
+  function placeNoNextToYes(){
+    const cr = card.getBoundingClientRect();
+    const yr = yesBtn.getBoundingClientRect();
+
+    const bw = noBtn.getBoundingClientRect().width  || 110;
+    const bh = noBtn.getBoundingClientRect().height || 48;
+
+    // Ziel: rechts neben Ja, gleiche Höhe
+    let left = (yr.right - cr.left) + 12;           // 12px gap
+    let top  = (yr.top   - cr.top)  + (yr.height - bh)/2;
+
+    // innerhalb der Card halten
+    left = Math.max(PAD, Math.min(left, cr.width  - bw - PAD));
+    top  = Math.max(PAD, Math.min(top,  cr.height - bh - PAD));
+
+    noBtn.style.left = left + "px";
+    noBtn.style.top  = top  + "px";
+  }
+
+  // ✅ Springt immer innerhalb der Card (anklickbar)
   function jumpNoInsideCard(){
     const cr = card.getBoundingClientRect();
-    const bw = noBtn.offsetWidth  || 110;
-    const bh = noBtn.offsetHeight || 48;
+    const bw = noBtn.getBoundingClientRect().width  || 110;
+    const bh = noBtn.getBoundingClientRect().height || 48;
 
     const maxX = Math.max(PAD, cr.width  - bw - PAD);
     const maxY = Math.max(PAD, cr.height - bh - PAD);
 
     const x = rand(PAD, maxX);
-    const y = rand(PAD + 85, maxY); // nicht in Titelbereich
+    const y = rand(PAD + 90, maxY); // nicht in Titelbereich
 
     noBtn.style.left = x + "px";
     noBtn.style.top  = y + "px";
   }
 
-  function activateNoFloatingMode(){
-    if (noHasMoved) return;
-    noHasMoved = true;
-
-    // Button aus dem normalen Flow lösen, aber IN der Card behalten
-    noBtn.classList.add("floating");
-    card.appendChild(noBtn);
-
-    // erste Flucht-Position
-    requestAnimationFrame(jumpNoInsideCard);
+  // ✅ iPhone-safe initial placement (mehrere Layout-Pässe)
+  function initNo(){
+    placeNoNextToYes();
+    setTimeout(placeNoNextToYes, 50);
+    setTimeout(placeNoNextToYes, 200);
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initNo);
+  } else {
+    initNo();
   }
 
-  // Ab dem 1. Klick: floating aktivieren + springen
-  noBtn.addEventListener("click", (e)=>{
+  // Ab erstem Klick/Tap: aktivieren + springen
+  function onNo(e){
     e.preventDefault();
-    activateNoFloatingMode();
+    if (!noActivated) noActivated = true;
     jumpNoInsideCard();
-  });
+  }
+  noBtn.addEventListener("click", onNo);
+  noBtn.addEventListener("touchstart", onNo, {passive:false});
 
-  noBtn.addEventListener("touchstart", (e)=>{
-    e.preventDefault();
-    activateNoFloatingMode();
-    jumpNoInsideCard();
-  }, {passive:false});
-
+  // Ja: Hearts + Spotify
   yesBtn.addEventListener("click", ()=>{
     result.style.display = "block";
     spotify.style.display = "block";
@@ -222,8 +249,10 @@
     spotifyFrame.src = "https://open.spotify.com/embed/track/3U5JVgI2x4rDyHGObzJfNf?utm_source=generator&autoplay=1";
   });
 
+  // Bei Rotation/Resize: Startposition wieder korrekt setzen (falls noch nicht aktiviert)
   window.addEventListener("resize", ()=>{
-    if(noHasMoved && !noBtn.disabled) jumpNoInsideCard();
+    if (!noActivated && !noBtn.disabled) placeNoNextToYes();
+    if (noActivated && !noBtn.disabled) jumpNoInsideCard();
   });
 </script>
 </body>
