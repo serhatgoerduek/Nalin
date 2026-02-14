@@ -10,13 +10,13 @@
       --bg2:#ffb3c7;
       --card: rgba(255,255,255,.18);
       --border: rgba(255,255,255,.28);
-      --text: #ffffff;
+      --text:#fff;
     }
     *{box-sizing:border-box}
     body{
       margin:0;
       font-family:-apple-system,BlinkMacSystemFont,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-      height:100svh; /* iPhone-sicherer als 100vh */
+      height:100svh;
       display:grid;
       place-items:center;
       padding:18px;
@@ -28,7 +28,6 @@
         radial-gradient(900px 700px at 80% 30%, rgba(255,183,3,.14), transparent 60%),
         linear-gradient(135deg,var(--bg1),var(--bg2));
     }
-
     .card{
       width:min(560px, 100%);
       background:var(--card);
@@ -38,9 +37,8 @@
       box-shadow:0 25px 60px rgba(0,0,0,.30);
       padding:34px 22px 22px;
       position:relative;
-      overflow:hidden; /* wichtig: damit „Nein“ nicht raus kann */
+      overflow:hidden;
     }
-
     h1{ margin:0 0 10px; font-size:28px; }
     p{ margin:0 0 8px; opacity:.92; }
     h2{ margin:10px 0 0; font-size:20px; font-weight:900; }
@@ -52,6 +50,7 @@
       gap:12px;
       flex-wrap:wrap;
       min-height:54px;
+      position:relative;
     }
 
     button{
@@ -73,17 +72,19 @@
     }
     .yes:hover{ transform: scale(1.03); filter:brightness(1.03); }
 
-    /* ✅ Nein bleibt innerhalb der Card und springt */
+    /* ✅ Nein startet NORMAL im Button-Row (fixed position) */
     .no{
-      position:absolute; /* relativ zur Card */
-      left: 60%;
-      top: 62%;
       background: rgba(255,255,255,.28);
       color:#fff;
       border:1px solid rgba(255,255,255,.22);
+    }
+    .no:hover{ transform:none; filter:none; }
+
+    /* ✅ Ab dem 1. Klick bekommt er "floating"-Mode innerhalb der Card */
+    .no.floating{
+      position:absolute;      /* relativ zur Card */
       z-index:5;
     }
-    .no:hover{ transform:none; filter:none; } /* kein größer werden */
 
     .result{
       display:none;
@@ -95,12 +96,11 @@
       border:1px solid rgba(255,255,255,.22);
       background: rgba(0,0,0,.10);
     }
-
     .spotify{
       display:none;
       margin-top:14px;
-      z-index:2;
       position:relative;
+      z-index:2;
     }
     iframe{
       width:100%;
@@ -130,7 +130,7 @@
     <p>Ich mach’s kurz und ehrlich 😌</p>
     <h2>Willst du mein Valentine sein? 🌹</h2>
 
-    <div class="btnRow">
+    <div class="btnRow" id="btnRow">
       <button class="yes" id="yesBtn">Ja 💖</button>
       <button class="no" id="noBtn">Nein 🙈</button>
     </div>
@@ -150,14 +150,15 @@
 
 <script>
   const card = document.getElementById("card");
+  const btnRow = document.getElementById("btnRow");
   const noBtn = document.getElementById("noBtn");
   const yesBtn = document.getElementById("yesBtn");
   const result = document.getElementById("result");
   const spotify = document.getElementById("spotify");
   const spotifyFrame = document.getElementById("spotifyFrame");
 
-  // ✅ springt IMMER innerhalb der Card (mit Abstand)
   const PAD = 14;
+  let noHasMoved = false;
 
   function rand(min, max){ return Math.random()*(max-min)+min; }
 
@@ -166,33 +167,48 @@
     const bw = noBtn.offsetWidth  || 110;
     const bh = noBtn.offsetHeight || 48;
 
-    // nutzbarer Bereich innerhalb der Card
     const maxX = Math.max(PAD, cr.width  - bw - PAD);
     const maxY = Math.max(PAD, cr.height - bh - PAD);
 
-    // Position relativ zur Card (absolute)
     const x = rand(PAD, maxX);
-    const y = rand(PAD + 70, maxY); // +70 damit er nicht direkt oben in den Titel springt
+    const y = rand(PAD + 85, maxY); // nicht in Titelbereich
 
     noBtn.style.left = x + "px";
     noBtn.style.top  = y + "px";
   }
 
-  // initial platzieren (nach Render)
-  requestAnimationFrame(()=> jumpNoInsideCard());
+  function activateNoFloatingMode(){
+    if (noHasMoved) return;
+    noHasMoved = true;
 
-  // bei jedem Klick/Tap springen
-  noBtn.addEventListener("click", (e)=>{ e.preventDefault(); jumpNoInsideCard(); });
-  noBtn.addEventListener("touchstart", (e)=>{ e.preventDefault(); jumpNoInsideCard(); }, {passive:false});
+    // Button aus dem normalen Flow lösen, aber IN der Card behalten
+    noBtn.classList.add("floating");
+    card.appendChild(noBtn);
+
+    // erste Flucht-Position
+    requestAnimationFrame(jumpNoInsideCard);
+  }
+
+  // Ab dem 1. Klick: floating aktivieren + springen
+  noBtn.addEventListener("click", (e)=>{
+    e.preventDefault();
+    activateNoFloatingMode();
+    jumpNoInsideCard();
+  });
+
+  noBtn.addEventListener("touchstart", (e)=>{
+    e.preventDefault();
+    activateNoFloatingMode();
+    jumpNoInsideCard();
+  }, {passive:false});
 
   yesBtn.addEventListener("click", ()=>{
     result.style.display = "block";
     spotify.style.display = "block";
     yesBtn.disabled = true;
-    yesBtn.textContent = "Ja (fest!) 💖";
+    yesBtn.textContent = "Ja 💖";
     noBtn.disabled = true;
 
-    // Herzen
     for(let i=0;i<26;i++){
       const h=document.createElement("div");
       h.className="heart";
@@ -203,12 +219,12 @@
       setTimeout(()=>h.remove(), 4000);
     }
 
-    // Spotify laden (kann je nach iOS/Spotify trotzdem Play benötigen)
     spotifyFrame.src = "https://open.spotify.com/embed/track/3U5JVgI2x4rDyHGObzJfNf?utm_source=generator&autoplay=1";
   });
 
-  // falls Bildschirm rotiert
-  window.addEventListener("resize", ()=>{ if(!noBtn.disabled) jumpNoInsideCard(); });
+  window.addEventListener("resize", ()=>{
+    if(noHasMoved && !noBtn.disabled) jumpNoInsideCard();
+  });
 </script>
 </body>
 </html>
