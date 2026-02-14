@@ -6,162 +6,216 @@
 <title>Nalin 💘</title>
 
 <style>
-body{
-  margin:0;
-  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
-  background:linear-gradient(135deg,#ff6b81,#ff9ff3);
-  height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  overflow:hidden;
-  color:white;
-  text-align:center;
-}
-
-.card{
-  background:rgba(255,255,255,0.15);
-  backdrop-filter:blur(20px);
-  padding:40px 25px;
-  border-radius:25px;
-  width:90%;
-  max-width:500px;
-  box-shadow:0 25px 60px rgba(0,0,0,0.3);
-  position:relative;
-}
-
-h1{
-  margin-bottom:10px;
-  font-size:28px;
-}
-
-p{
-  opacity:0.9;
-}
-
-button{
-  margin:20px 10px 0;
-  padding:12px 24px;
-  border:none;
-  border-radius:14px;
-  font-size:16px;
-  font-weight:bold;
-  cursor:pointer;
-  transition:0.2s;
-}
-
-.yes{
-  background:white;
-  color:#ff4d6d;
-}
-
-.no{
-  background:rgba(255,255,255,0.3);
-  color:white;
-  position:fixed;
-}
-
-.result{
-  display:none;
-  margin-top:20px;
-  font-size:18px;
-}
-
-.spotify{
-  display:none;
-  margin-top:20px;
-}
-
-.hearts{
-  position:absolute;
-  bottom:-20px;
-  font-size:22px;
-  animation:floatUp 4s linear forwards;
-}
-
-@keyframes floatUp{
-  to{
-    transform:translateY(-110vh);
-    opacity:0;
+  :root{
+    --bg1:#ff6b81;
+    --bg2:#ff9ff3;
   }
-}
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    overflow:hidden;
+    color:white;
+    text-align:center;
+    padding:18px;
+  }
+
+  .card{
+    background:rgba(255,255,255,0.15);
+    backdrop-filter:blur(20px);
+    padding:38px 22px 22px;
+    border-radius:25px;
+    width:90%;
+    max-width:520px;
+    box-shadow:0 25px 60px rgba(0,0,0,0.30);
+    position:relative;
+  }
+
+  h1{ margin:0 0 10px; font-size:28px; }
+  h2{ margin:10px 0 0; font-size:20px; font-weight:800; }
+  p{ opacity:0.92; margin:0 0 6px; }
+
+  .btnRow{
+    margin-top:18px;
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    flex-wrap:wrap;
+    min-height:54px;
+  }
+
+  button{
+    padding:12px 22px;
+    border:none;
+    border-radius:14px;
+    font-size:16px;
+    font-weight:800;
+    cursor:pointer;
+    transition: transform 0.12s ease, filter 0.12s ease, left 0.10s ease, top 0.10s ease;
+    user-select:none;
+  }
+  button:active{ transform: translateY(1px) scale(.99); }
+
+  .yes{
+    background:white;
+    color:#ff2d55;
+  }
+  .yes:hover{ filter: brightness(1.03); transform: scale(1.03); }
+
+  /* Nein: kein Hover-Scale */
+  .no{
+    background:rgba(255,255,255,0.28);
+    color:white;
+    position:fixed;   /* wir positionieren relativ zum Viewport */
+    left: 50%;
+    top: 50%;
+    transform: translate(70px, 40px); /* Startposition nahe Card */
+    z-index: 9999;
+  }
+  .no:hover{ transform: none; filter:none; } /* verhindert "größer werden" */
+
+  .result{
+    display:none;
+    margin-top:18px;
+    font-size:18px;
+    line-height:1.35;
+  }
+
+  .spotify{
+    display:none;
+    margin-top:16px;
+  }
+  iframe{
+    width:100%;
+    height:152px;
+    border:0;
+    border-radius:16px;
+  }
+
+  .heart{
+    position:absolute;
+    bottom:-20px;
+    font-size:22px;
+    animation:floatUp 4s linear forwards;
+    pointer-events:none;
+  }
+  @keyframes floatUp{
+    to{ transform:translateY(-110vh); opacity:0; }
+  }
 </style>
 </head>
 
 <body>
 
-<div class="card">
+<div class="card" id="card">
   <h1>Nalin… 💘</h1>
   <p>Ich hab nur eine Frage an dich 😌</p>
   <h2>Willst du mein Valentine sein? 🌹</h2>
 
-  <button class="yes" onclick="sayYes()">Ja 💖</button>
-  <button class="no" id="noBtn">Nein 💔</button>
+  <div class="btnRow">
+    <button class="yes" id="yesBtn">Ja 💖</button>
+  </div>
+
+  <button class="no" id="noBtn">Nein 🙈</button>
 
   <div class="result" id="result">
-    Du bist ein G ❤️
+    Yesss 😍 Dann ist das unser Song ✨🌹
   </div>
 
   <div class="spotify" id="spotify">
     <iframe
       id="spotifyFrame"
-      style="border-radius:16px"
       src=""
-      width="100%"
-      height="152"
-      frameborder="0"
       allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture">
     </iframe>
   </div>
 </div>
 
 <script>
+  const card = document.getElementById("card");
+  const noBtn = document.getElementById("noBtn");
+  const yesBtn = document.getElementById("yesBtn");
+  const result = document.getElementById("result");
+  const spotify = document.getElementById("spotify");
+  const spotifyFrame = document.getElementById("spotifyFrame");
 
-const noBtn = document.getElementById("noBtn");
-const result = document.getElementById("result");
-const spotify = document.getElementById("spotify");
-const spotifyFrame = document.getElementById("spotifyFrame");
+  // ✅ Radius-Einstellungen (in px) – so bleibt er immer in Reichweite
+  const RADIUS_MIN = 70;   // nie direkt auf dem "Ja"-Button
+  const RADIUS_MAX = 190;  // nicht zu weit weg
+  const EDGE_PADDING = 14; // Abstand zum Bildschirmrand
 
-// JA gedrückt
-function sayYes(){
-  result.style.display="block";
-  spotify.style.display="block";
-  heartBurst();
+  function rand(min, max){ return Math.random()*(max-min)+min; }
 
-  spotifyFrame.src="https://open.spotify.com/embed/track/3U5JVgI2x4rDyHGObzJfNf?utm_source=generator&autoplay=1";
-}
+  function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
 
-// NEIN springt zufällig
-function moveButton(){
-  const x = Math.random() * (window.innerWidth - 100);
-  const y = Math.random() * (window.innerHeight - 50);
-  noBtn.style.left = x + "px";
-  noBtn.style.top = y + "px";
-}
+  // zufälliger Punkt in einem Ring (min..max) um Card-Mittelpunkt
+  function randomPointAroundCard(){
+    const rect = card.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top  + rect.height/2;
 
-noBtn.addEventListener("click",(e)=>{
-  e.preventDefault();
-  moveButton();
-});
+    const angle = rand(0, Math.PI * 2);
+    const radius = rand(RADIUS_MIN, RADIUS_MAX);
 
-noBtn.addEventListener("touchstart",(e)=>{
-  e.preventDefault();
-  moveButton();
-},{passive:false});
+    // Zielpunkt (Button-TopLeft)
+    const bw = noBtn.offsetWidth || 90;
+    const bh = noBtn.offsetHeight || 44;
 
-// Herzen
-function heartBurst(){
-  for(let i=0;i<25;i++){
-    const heart=document.createElement("div");
-    heart.innerHTML="💖";
-    heart.classList.add("hearts");
-    heart.style.left=Math.random()*100+"vw";
-    heart.style.animationDuration=(3+Math.random()*2)+"s";
-    document.body.appendChild(heart);
-    setTimeout(()=>heart.remove(),4000);
+    let x = cx + Math.cos(angle) * radius - bw/2;
+    let y = cy + Math.sin(angle) * radius - bh/2;
+
+    // innerhalb des Viewports halten
+    x = clamp(x, EDGE_PADDING, window.innerWidth  - bw - EDGE_PADDING);
+    y = clamp(y, EDGE_PADDING, window.innerHeight - bh - EDGE_PADDING);
+
+    return {x, y};
   }
-}
 
+  function jumpNo(){
+    const {x, y} = randomPointAroundCard();
+    noBtn.style.left = x + "px";
+    noBtn.style.top  = y + "px";
+  }
+
+  // Start: einmal sinnvoll platzieren
+  jumpNo();
+
+  // Nein springt bei jedem Klick/Tap
+  noBtn.addEventListener("click", (e)=>{ e.preventDefault(); jumpNo(); });
+  noBtn.addEventListener("touchstart", (e)=>{ e.preventDefault(); jumpNo(); }, {passive:false});
+
+  // Ja: Hearts + Spotify laden
+  yesBtn.addEventListener("click", ()=>{
+    result.style.display = "block";
+    spotify.style.display = "block";
+    yesBtn.disabled = true;
+    yesBtn.textContent = "Ja (fest!) 💖";
+    noBtn.disabled = true;
+
+    // Hearts
+    for(let i=0;i<25;i++){
+      const h = document.createElement("div");
+      h.className = "heart";
+      h.textContent = "💖";
+      h.style.left = (Math.random()*100) + "vw";
+      h.style.animationDuration = (3 + Math.random()*2) + "s";
+      document.body.appendChild(h);
+      setTimeout(()=>h.remove(), 4000);
+    }
+
+    // Spotify (Start-Versuch nach Klick)
+    spotifyFrame.src = "https://open.spotify.com/embed/track/3U5JVgI2x4rDyHGObzJfNf?utm_source=generator&autoplay=1";
+  });
+
+  // Bei Resize neu clampen (z.B. Handy drehen)
+  window.addEventListener("resize", ()=>{
+    if(!noBtn.disabled) jumpNo();
+  });
 </script>
 
 </body>
